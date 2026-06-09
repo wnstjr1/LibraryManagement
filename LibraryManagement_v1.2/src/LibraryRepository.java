@@ -70,6 +70,32 @@ public class LibraryRepository {
         }
     }
 
+    public boolean deleteBook(int bookId)
+    { // 특정 ID만 삭제하도록 WHERE 절을 포함한 쿼리 작성
+        String sql = "DELETE FROM books WHERE book_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            // 파라미터 바인딩을 통해 SQL Injection 방지
+            pstmt.setInt(1, bookId);
+
+            // 영향을 받은 행(row)의 수를 반환받음
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows > 0) {
+                System.out.println("[시스템] 도서 번호 " + bookId + "번이 성공적으로 삭제되었습니다.");
+                return true;
+            } else {
+                System.out.println("[알림] 삭제할 도서 번호 " + bookId + "번을 찾을 수 없습니다.");
+                return false;
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[오류] DB 삭제 작업 실패: " + e.getMessage());
+            return false;
+        }
+    }
     /**
      * 데이터베이스로부터 모든 도서 정보를 조회하여 메모리에 로드합니다.
      * * @return 도서 ID를 키로 하는 도서 정보 맵
