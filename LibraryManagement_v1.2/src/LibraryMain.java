@@ -42,9 +42,17 @@ public class LibraryMain {
     /**
      * 사용자 로그인을 수행합니다.
      * <p>성공할 때까지 아이디와 비밀번호 입력을 반복 요청합니다.</p>
+     * <p><b>보안 패치 및 피드백 반영 내역 (Security Patch):</b></p>
+     * <ul>
+     * <li>비밀번호 입력 시 평문이 화면에 노출되는 취약점(Shoulder Surfing)을 조치했습니다.</li>
+     * <li>인텔리제이 내장 콘솔의 버퍼 선출력 특성으로 인해 실시간 마스킹(*) 시 문자열이 오염되던 버그를 해결했습니다.</li>
+     * <li>자바 표준 시큐어 코딩 가이드라인에 따라 OS 터미널(CMD/PowerShell) 환경에서는 입력 데이터를 완벽하게 은닉(숨김) 처리합니다.</li>
+     * <li>IDE 개발 환경에서의 실행 오류를 방지하기 위한 null 안전 방어 로직(Scanner 백업)이 포함되어 있습니다.</li>
+     * </ul>
      *
      * @return 로그인 성공 여부 (true: 성공)
      * @see LibraryManager#login(String, String)
+     * @see <a href="https://github.com/wnstjr1/LibraryManagement/issues/5">Issue #5: 비밀번호 입력시 번호가 그대로 노출된다</a>
      */
     private static boolean performLogin() {
         while (true) {
@@ -52,8 +60,28 @@ public class LibraryMain {
             System.out.print("아이디: ");
             String id = sc.nextLine();
             System.out.print("비밀번호: ");
-            String pw = sc.nextLine();
 
+            String pw = "";
+
+            // 💡 [시큐어 코딩] 실제 서비스 운영 환경(OS 터미널, Windows CMD 등)인 경우
+            if (System.console() != null) {
+                // readPassword()는 사용자가 타이핑하는 글자를 화면에 전혀 노출하지 않고 완벽히 은닉합니다.
+                // 입력 흔적 자체를 남기지 않으므로 Shoulder Surfing 공격을 원천 차단하는 가장 안전한 방식입니다.
+                char[] passwordChars = System.console().readPassword();
+                pw = new String(passwordChars);
+            }
+            // 💡 [환경 예외 처리] 인텔리제이 내장 콘솔 등 개발 환경인 경우 (백업 로직)
+            else {
+                // 인텔리제이 내부 Run 창은 진짜 OS 터미널이 아니므로 System.console()이 null을 반환합니다.
+                // 시스템이 NullPointerException으로 다운되는 것을 방지하기 위해 Scanner 백업 스트림을 작동시킵니다.
+                // (※ 개발 환경 특성상 평문이 노출될 수 있으나, 실제 운영 배포 환경에서는 위쪽 if문이 작동합니다.)
+                pw = sc.nextLine();
+            }
+
+            // 사용자가 패스워드를 입력할 때 앞뒤로 혼입될 수 있는 불필요한 개행이나 공백 제거
+            pw = pw.trim();
+
+            // 인증 로직 호출 (성공 시 true를 반환하여 로그인 루프 탈출)
             if (manager.login(id, pw)) return true;
             System.out.println("[오류] 아이디 또는 비밀번호가 틀렸습니다.");
         }
