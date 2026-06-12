@@ -126,22 +126,24 @@ public class LibraryRepository {
 
     /**
      * 사용자 로그인을 위한 정보를 조회합니다.
-     * <p><b>보안 실습 주의:</b> 현재 이 메소드는 SQL Injection 공격에 취약하도록 의도적으로 설계되었습니다.</p>
-     * <p>입력값이 쿼리문에 직접 결합되는 방식의 위험성을 교육하기 위한 용도로만 사용하십시오.</p>
+     * <p><b>보안 실습 및 시큐어 코딩 조치 완료:</b></p>
+     * <p>기존의 입력값이 쿼리문에 직접 결합되는 방식의 위험성을 확인하고, 이를 방어하기 위해 PreparedStatement 방식으로 전면 개조하였습니다.</p>
      * * @param id 사용자 아이디
      * @param pw 사용자 비밀번호
      * @return 인증된 {@link User} 객체 (일치 정보 없을 시 null)
      *
-     * @see <a href="https://github.com/sumannam/Java/issues/40">Issue #40: SQL Injection 취약점 개발</a>
+     * @see <a href="https://github.com/wnstjr1/LibraryManagement/issues/7">Issue #7: SQL Injection 취약점 방어 및 안전한 로그인 구현</a>
      */
     public User loadUser(String id, String pw) {
-        //String sql = "SELECT * FROM users WHERE user_id = ? AND password = ?";
-        String sql = "SELECT * FROM users WHERE user_id = '" + id + "' AND password = '" + pw + "'";
-        //System.out.println(sql);
+        // [시큐어 코딩 적용] 기존의 문자열 결합 방식(String Concatenation)을 폐기하고 위치 지정자(?)를 사용합니다.
+        // 공격자가 패스워드에 '' or '1' = '1' 을 주입하더라도 쿼리 구조가 변조되지 않고 안전하게 방어됩니다.
+        String sql = "SELECT * FROM users WHERE user_id = ? AND password = ?";
 
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+            // 위치 지정자(?) 자리에 안전하게 파라미터를 바인딩합니다.
+            // 입력값이 명령어 코드가 아닌 단순한 '일반 문자열 데이터'로만 처리되도록 강제합니다.
             pstmt.setString(1, id);
             pstmt.setString(2, pw);
 
